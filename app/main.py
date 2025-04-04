@@ -10,6 +10,10 @@ from app.models.payment_confirm import ConfirmPaymentRequest
 from .core.config import settings
 from .core.database import async_engine, get_async_session
 
+from app.api.routers.payment_confirm import router as confirm_router
+from app.api.routers.payment_intent import router as intent_router
+from app.api.routers.stripe_webhook import router as webhook_router
+
 # Configure logging
 # Basic config, customize as needed (e.g., structured logging)
 logging.basicConfig(level=logging.INFO if settings.APP_ENV == "production" else logging.DEBUG)
@@ -41,6 +45,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+@app.include_router(intent_router, prefix="/intent", tags=["IntentPayment"])
+
+@app.include_router(confirm_router, prefix="/confirm", tags=["ConfirmPayment"])
+
+@app.include_router(webhook_router, prefix="/webhook", tags=["WebhookPayment"])
 
 @app.get("/test-db/", summary="Test Database Connection", tags=["Test"])
 async def test_db_connection(
