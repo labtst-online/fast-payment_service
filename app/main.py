@@ -5,14 +5,13 @@ from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.routers.payment_confirm import router as confirm_router
+from app.api.routers.payment_intent import router as intent_router
+from app.api.routers.stripe_webhook import router as webhook_router
 from app.models.payment_confirm import ConfirmPaymentRequest
 
 from .core.config import settings
 from .core.database import async_engine, get_async_session
-
-from app.api.routers.payment_confirm import router as confirm_router
-from app.api.routers.payment_intent import router as intent_router
-from app.api.routers.stripe_webhook import router as webhook_router
 
 # Configure logging
 # Basic config, customize as needed (e.g., structured logging)
