@@ -1,7 +1,7 @@
 import os
 from typing import Any
 
-from pydantic import PostgresDsn, field_validator
+from pydantic import HttpUrl, PostgresDsn, field_validator
 from pydantic_core import MultiHostUrl
 from pydantic_core.core_schema import ValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=env_path, extra='ignore')
 
     APP_ENV: str = "development"
+    DOMAIN: str
 
     # Postgres Database Config
     POSTGRES_SERVER: str
@@ -29,6 +30,11 @@ class Settings(BaseSettings):
     KAFKA_BOOTSTRAP_SERVERS="kafka:9092"
     KAFKA_PAYMENT_EVENTS_TOPIC="payment_events"
     KAFKA_CLIENT_ID: str = "payment_service_producer"
+
+    # Service URLs
+    AUTH_SERVICE_URL: HttpUrl = "http://auth_service:8000"
+    SUBSCRIPTION_SERVICE_URL: HttpUrl = "http://subscription_service:8003"
+    FRONTEND_URL: HttpUrl = "http://localhost:3000"
 
     SQLALCHEMY_DATABASE_URI: PostgresDsn | None = None
 
