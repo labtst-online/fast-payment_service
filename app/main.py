@@ -12,6 +12,7 @@ from app.models.payment import Payment
 
 from .core.config import settings
 from .core.database import async_engine, get_async_session
+from .core.kafka_client import kafka_client
 
 # Configure logging
 # Basic config, customize as needed (e.g., structured logging)
@@ -28,17 +29,34 @@ async def lifespan(app: FastAPI):
             logger.info("Database connection successful during startup.")
     except Exception as e:
         logger.error(f"Database connection failed during startup: {e}")
-    yield
-    logger.info("Application shutdown...")
-    # Close the engine connections pool
-    await async_engine.dispose()
-    logger.info("Database engine disposed.")
+
     # Initialize Stripe API Key
     try:
         stripe.api_key = settings.STRIPE_SECRET_KEY
         logger.info("Stripe API key configured successfully during startup.")
     except Exception:
         logger.exception("CRITICAL: Failed to configure Stripe API key on startup.", exc_info=True)
+
+    # Inittialize Kafka Producer
+    try:
+        await kafka_client.init_producer()
+        logger.info("Kafka Producer initialized successfully during startup.")
+    except Exception as e:
+        logger.exception(
+            f"An unexpected error occurred "
+            f"during Kafka producer initialization: {e}", exc_info=True
+        )
+        raise RuntimeError("Kafka producer initialization failed") from e
+
+    yield
+    logger.info("Application shutdown...")
+    # Close the engine connections pool
+    await async_engine.dispose()
+    logger.info("Database engine disposed.")
+
+    logger.info("Close Kafka Producer")
+    await kafka_client.close_producer()
+    logger.info("Shutdown complete.")
 
 
 app = FastAPI(
