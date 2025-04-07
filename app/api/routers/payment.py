@@ -34,14 +34,14 @@ async def create_checkout_session(
     async with httpx.AsyncClient() as http_client:
         try:
             response = await http_client.get(
-                f"{settings.SUBSCRIPTION_SERVICE_URL}/api/subscription/tiers/{payload.tier_id}"
+                f"{settings.SUBSCRIPTION_SERVICE_URL}tier/tiers/{payload.tier_id}"
             )
             response.raise_for_status()
             tier_data = response.json()
 
             # Extract tier details from response
             tier_price = tier_data.get('price')
-            tier_currency = tier_data.get('currency')
+            tier_currency = tier_data.get('currency', 'usd').lower()
             tier_name = tier_data.get('name')
 
             logger.info(f"Retrieved tier details: {tier_name} - {tier_price} {tier_currency}")
@@ -54,6 +54,18 @@ async def create_checkout_session(
             )
 
     try:
+        unit_amount_in_cents = int(round(tier_price * 100))
+        logger.info(
+            f"Converted price {tier_price} {tier_currency} to {unit_amount_in_cents} cents."
+        )
+    except Exception as e:
+        logger.error(f"Failed to convert price {tier_price} to cents: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to process tier price."
+        )
+
+    try:
         checkout_session = stripe.checkout.Session.create(
             client_reference_id=str(current_user),
             # Payment details
@@ -63,11 +75,11 @@ async def create_checkout_session(
                     'product_data': {
                         'name': f"Subscription: {tier_name}", # Display name on Stripe page
                     },
-                    'unit_amount': tier_price, # Price in cents
+                    'unit_amount': unit_amount_in_cents, # Price in cents
                 },
                 'quantity': 1,
             }],
-            mode='subscription',
+            mode='payment',
             success_url=settings.DOMAIN + '?success=true',
             cancel_url=settings.DOMAIN + '?canceled=true',
             metadata={
@@ -94,7 +106,7 @@ async def create_checkout_session(
         user_id=current_user,
         tier_id=payload.tier_id,
         stripe_checkout_session_id=checkout_session.id,
-        amount=tier_price,
+        amount=unit_amount_in_cents,
         currency=tier_currency,
         status=PaymentStatus.PENDING
     )
