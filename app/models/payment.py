@@ -19,7 +19,7 @@ class PaymentBase(SQLModel):
 
 class Payment(PaymentBase, table=True):
     id: uuid.UUID = Field(
-        default_factory=uuid.UUID,
+        default_factory=uuid.uuid4,
         primary_key=True,
         index=True,
         nullable=False,
@@ -32,9 +32,9 @@ class Payment(PaymentBase, table=True):
     amount: int = Field(ge=0, nullable=False)  # Store cents
     currency: str = Field(default="usd", nullable=False, max_length=3)
     status: PaymentStatus = Field(
-        index=True,
-        nullable=False,
-        sa_column=Column(Enum(PaymentStatus))
+        sa_column=Column(
+            Enum(PaymentStatus), nullable=False, index=True,
+        )
     )
     created_at: datetime.datetime = Field(
         sa_column=Column(

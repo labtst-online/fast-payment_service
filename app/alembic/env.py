@@ -10,9 +10,10 @@ from sqlalchemy.ext.asyncio import create_async_engine
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.insert(0, project_root)
 
-from sqlmodel import SQLModel  # noqa: E402
+from sqlmodel import SQLModel
 
-from app.core.config import settings  # noqa: E402
+from app.core.config import settings
+from app.models.payment import Payment
 
 config = context.config
 

@@ -8,10 +8,7 @@ from app.models.payment import PaymentBase, PaymentStatus
 
 
 class PaymentCreate(PaymentBase):
-    tier_id: uuid.UUID | None
-    subscription_id: uuid.UUID | None
-    success_url: HttpUrl | None
-    cancel_url: HttpUrl | None
+    tier_id: uuid.UUID
 
 
 class PaymentRead(PaymentBase):
