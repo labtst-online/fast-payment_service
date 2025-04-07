@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
 
     # Inittialize Kafka Producer
     try:
-        await kafka_client.init_producer()
+        kafka_client.init_producer()
         logger.info("Kafka Producer initialized successfully during startup.")
     except Exception as e:
         logger.exception(
@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI):
     logger.info("Database engine disposed.")
 
     logger.info("Close Kafka Producer")
-    await kafka_client.close_producer()
+    kafka_client.close_producer()
     logger.info("Shutdown complete.")
 
 
@@ -66,9 +66,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-@app.include_router(payment_router, prefix="/payment", tags=["Payment"])
+app.include_router(webhooks_router, prefix="/webhook", tags=["WebhookPayment"])
 
-@app.include_router(webhooks_router, prefix="/webhook", tags=["WebhookPayment"])
+app.include_router(payment_router, prefix="/payment", tags=["Payment"])
 
 @app.get("/test-db/", summary="Test Database Connection", tags=["Test"])
 async def test_db_connection(
