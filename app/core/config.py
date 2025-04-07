@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=env_path, extra='ignore')
 
     APP_ENV: str = "development"
-    DOMAIN: str
+    DOMAIN: str = "http://localhost/"
 
     # Postgres Database Config
     POSTGRES_SERVER: str
@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str
 
     # Kafka Config
-    KAFKA_BOOTSTRAP_SERVERS="kafka:9092"
-    KAFKA_PAYMENT_EVENTS_TOPIC="payment_events"
+    KAFKA_BOOTSTRAP_SERVERS: str ="kafka:9092"
+    KAFKA_PAYMENT_EVENTS_TOPIC: str ="payment_events"
     KAFKA_CLIENT_ID: str = "payment_service_producer"
 
     # Service URLs
