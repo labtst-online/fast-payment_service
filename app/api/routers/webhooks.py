@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+import datetime
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -20,12 +20,20 @@ async def verify_stripe_signature(request: Request) -> stripe.Event:
     """Verify Stripe webhook signature and return the event"""
     payload = await request.body()
     sig_header = request.headers.get('stripe-signature')
+    logger.debug(f"Received Stripe webhook. Signature header present: {bool(sig_header)}")
+
+    if not sig_header:
+        logger.error("Stripe signature header missing.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing Stripe signature"
+        )
 
     try:
         event = stripe.Webhook.construct_event(
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
-        logger.debug(f"Stripe webhook signature verified successfully."
+        logger.info(f"Stripe webhook signature verified successfully."
                      f" Event ID: {event.id}, Type: {event.type}")
         return event
     except ValueError as e:
@@ -54,8 +62,9 @@ async def process_successful_payment(
     session: AsyncSession,
     checkout_session_id: str,
     payment_intent_id: str
-) -> Payment:
+) -> Payment | None:
     """Update payment record for successful checkout"""
+    logger.info(f"Processing successful payment for checkout session: {checkout_session_id}")
     statement = select(Payment).where(Payment.stripe_checkout_session_id == checkout_session_id)
     result = await session.execute(statement)
     db_payment = result.scalar_one_or_none()
@@ -65,24 +74,32 @@ async def process_successful_payment(
         return None
 
     if db_payment.status == PaymentStatus.SUCCEEDED:
-        logger.warning(f"Payment {checkout_session_id} already marked as SUCCEEDED")
+        logger.warning(
+            f"Payment {checkout_session_id} already marked as SUCCEEDED. Skipping update."
+        )
         return db_payment
 
     if db_payment.status != PaymentStatus.PENDING:
-        logger.error(f"Payment {checkout_session_id} has invalid status: {db_payment.status}")
+        logger.error(f"Payment {checkout_session_id} has unexpected status: {db_payment.status}. Expected PENDING.")
         return None
 
-    db_payment.status = PaymentStatus.SUCCEEDED
-    db_payment.stripe_payment_intent_id = payment_intent_id
-    session.add(db_payment)
-    await session.commit()
-    await session.refresh(db_payment)
-
-    return db_payment
+    try:
+        db_payment.status = PaymentStatus.SUCCEEDED
+        db_payment.stripe_payment_intent_id = payment_intent_id
+        session.add(db_payment)
+        await session.commit()
+        await session.refresh(db_payment)
+        logger.info(f"Payment record {db_payment.id} updated to SUCCEEDED for session {checkout_session_id}")
+        return db_payment
+    except Exception as e:
+        logger.exception(f"Database error updating payment {db_payment.id} to SUCCEEDED: {e}")
+        await session.rollback()
+        return None
 
 
 async def publish_payment_event(payment: Payment) -> bool:
     """Publish payment success event to Kafka"""
+    logger.info(f"Attempting to publish PaymentSucceededEvent for payment {payment.id}")
     try:
         event = PaymentSucceededEvent(
             payment_id=payment.id,
@@ -90,10 +107,11 @@ async def publish_payment_event(payment: Payment) -> bool:
             tier_id=payment.tier_id,
             amount=payment.amount,
             currency=payment.currency,
-            paid_at=datetime.now(datetime.UTC),
+            paid_at=datetime.datetime.now(datetime.UTC),
             stripe_payment_intent_id=payment.stripe_payment_intent_id,
             stripe_checkout_session_id=payment.stripe_checkout_session_id
         )
+        logger.debug(f"Prepared event data for Kafka: {event.model_dump_json()}")
 
         success = kafka_client.produce_message(
             topic=settings.KAFKA_PAYMENT_EVENTS_TOPIC,
@@ -101,11 +119,11 @@ async def publish_payment_event(payment: Payment) -> bool:
         )
 
         if success:
-            logger.info(f"Published PaymentSucceededEvent to Kafka for payment {payment.id}.")
+            logger.info(f"Successfully published PaymentSucceededEvent to Kafka topic '{settings.KAFKA_PAYMENT_EVENTS_TOPIC}' for payment {payment.id}.")
             return True
-
-        logger.error(f"Failed to publish event for payment {payment.id}")
-        return False
+        else:
+            logger.error(f"kafka_client.produce_message returned False for payment {payment.id}. Check Kafka client logs.")
+            return False
 
     except Exception as e:
         logger.exception(
@@ -134,36 +152,66 @@ async def stripe_webhook(
     logger.info("Received Stripe webhook request.")
 
     # Verify Webhook Signature
-    event = await verify_stripe_signature(request)
-
-    if event['type'] != 'checkout.session.completed':
-        logger.info(f"Received unhandled event type: {event['type']}")
-        return Response(status_code=status.HTTP_200_OK)
-
-    # Handle the 'checkout.session.completed' event
-    session_data = event['data']['object']
-    if session_data.get('payment_status') != 'paid':
-        logger.warning(f"Checkout {session_data['id']} not paid")
-        return Response(status_code=status.HTTP_200_OK)
-
-
-    # Update Database
     try:
-        payment = await process_successful_payment(
-            session=session,
-            checkout_session_id=session_data['id'],
-            payment_intent_id=session_data.get('payment_intent')
-        )
-        # Publish to Kafka
-        if payment:
-            await publish_payment_event(payment)
-
+        event = await verify_stripe_signature(request)
+    except HTTPException as e:
+        logger.error(f"Webhook signature verification failed: {e.detail}")
+        raise e # Re-raise the HTTPException to return proper status code
     except Exception as e:
-        logger.exception(f"Error processing payment: {e}")
-        await session.rollback()
+        logger.exception(f"Unexpected error during signature verification step: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to process payment"
+            detail="Internal server error during signature verification."
         )
 
+    event_type = event.get('type')
+    logger.debug(f"Processing verified event type: {event_type}")
+
+    if event_type != 'checkout.session.completed':
+        logger.info(f"Received unhandled event type: {event_type}. Acknowledging.")
+        return Response(status_code=status.HTTP_200_OK)
+
+    session_data = event['data']['object']
+    checkout_session_id = session_data.get('id')
+    payment_status = session_data.get('payment_status')
+    payment_intent_id = session_data.get('payment_intent')
+
+    logger.info(f"Handling checkout.session.completed for session {checkout_session_id}. Payment status: {payment_status}")
+
+    if payment_status != 'paid':
+        logger.warning(f"Checkout session {checkout_session_id} completed but payment status is '{payment_status}'. No action taken.")
+        return Response(status_code=status.HTTP_200_OK)
+
+    if not payment_intent_id:
+        logger.error(
+            f"Checkout session {checkout_session_id} is paid but missing 'payment_intent'."
+            " Cannot proceed."
+            )
+        return Response(status_code=status.HTTP_400_BAD_REQUEST, content="Missing payment intent in webhook data.")
+
+    payment = None
+    try:
+        logger.debug(f"Attempting to process successful payment for session {checkout_session_id} in database.")
+        payment = await process_successful_payment(
+            session=session,
+            checkout_session_id=checkout_session_id,
+            payment_intent_id=payment_intent_id
+        )
+
+        if payment:
+            logger.debug(f"Database update successful for payment {payment.id}. Attempting to publish Kafka event.")
+            published = await publish_payment_event(payment)
+            if not published:
+                logger.error(f"Failed to publish Kafka event for successfully processed payment {payment.id}.")
+        else:
+            logger.error(f"Failed to process payment in database for session {checkout_session_id}. No Kafka event published.")
+
+    except Exception as e:
+        logger.exception(f"Unhandled error processing payment for session {checkout_session_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error processing payment completion."
+        )
+
+    logger.info(f"Successfully processed webhook for checkout session {checkout_session_id}.")
     return Response(status_code=status.HTTP_200_OK)

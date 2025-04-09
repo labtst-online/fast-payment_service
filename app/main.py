@@ -66,7 +66,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-app.include_router(webhooks_router, prefix="/webhook", tags=["WebhookPayment"])
+app.include_router(webhooks_router, prefix="/webhooks", tags=["WebhookPayment"])
 
 app.include_router(payment_router, prefix="/payment", tags=["Payment"])
 
