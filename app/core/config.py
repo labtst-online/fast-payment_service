@@ -32,7 +32,6 @@ class Settings(BaseSettings):
     KAFKA_CLIENT_ID: str = "payment_service_producer"
 
     # Service URLs
-    AUTH_SERVICE_URL: HttpUrl = "http://auth_service:8000"
     SUBSCRIPTION_SERVICE_URL: HttpUrl = "http://subscription_service:8003"
     FRONTEND_URL: HttpUrl = "http://localhost:3000"
 
