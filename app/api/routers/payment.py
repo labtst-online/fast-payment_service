@@ -2,10 +2,10 @@ import logging
 
 import httpx
 import stripe
+from auth_lib import CurrentUserUUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUserUUID
 from app.core.config import settings
 from app.core.database import get_async_session
 from app.models.payment import Payment, PaymentStatus

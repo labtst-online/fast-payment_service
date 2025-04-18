@@ -38,6 +38,7 @@ async def lifespan(app: FastAPI):
         logger.exception("CRITICAL: Failed to configure Stripe API key on startup.", exc_info=True)
 
     # Inittialize Kafka Producer
+    logger.info("Initializing Kafka producer...")
     try:
         kafka_client.init_producer()
         logger.info("Kafka Producer initialized successfully during startup.")
