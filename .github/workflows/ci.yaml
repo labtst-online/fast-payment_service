@@ -1,0 +1,50 @@
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # services:
+    #   postgres:
+    #     image: postgres:17
+    #     env:
+    #       POSTGRES_USER: postgres
+    #       POSTGRES_PASSWORD: postgres
+    #       POSTGRES_DB: test_profile_db
+    #     ports:
+    #       - 5432:5432
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: 'latest'
+
+      - name: Configure Git for Private Repo Access
+        run: git config --global url."https://oauth2:${{ secrets.GH_PAT_FOR_AUTH_LIB }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Sync all dependencies (including extras)
+        run: uv sync --all-extras --upgrade-package auth-lib
+
+      - name: Run ruff format check
+        run: uv run ruff format --check .
+
+      # - name: Run pytest
+      #   env:
+      #     POSTGRES_SERVER: localhost
+      #     POSTGRES_USER: postgres
+      #     POSTGRES_PASSWORD: postges
+      #     POSTGRES_DB: test_profile_db
+      #     SQLALCHEMY_DATABASE_URI: postgresql+asyncpg://postgres:postgres@localhost:5432/test_profile_db
+      #   run: uv run pytest --maxfail=1 --disable-warnings -q

@@ -14,8 +14,6 @@ from .core.config import settings
 from .core.database import async_engine, get_async_session
 from .core.kafka_client import kafka_client
 
-# Configure logging
-# Basic config, customize as needed (e.g., structured logging)
 logging.basicConfig(level=logging.INFO if settings.APP_ENV == "production" else logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -44,14 +42,12 @@ async def lifespan(app: FastAPI):
         logger.info("Kafka Producer initialized successfully during startup.")
     except Exception as e:
         logger.exception(
-            f"An unexpected error occurred "
-            f"during Kafka producer initialization: {e}", exc_info=True
+            f"An unexpected error occurred during Kafka producer initialization: {e}", exc_info=True
         )
         raise RuntimeError("Kafka producer initialization failed") from e
 
     yield
     logger.info("Application shutdown...")
-    # Close the engine connections pool
     await async_engine.dispose()
     logger.info("Database engine disposed.")
 
@@ -64,17 +60,16 @@ app = FastAPI(
     title="Payment Service",
     description="Handles user transactions.",
     version="0.1.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 app.include_router(webhooks_router, prefix="/webhooks", tags=["WebhookPayment"])
 
 app.include_router(payment_router, prefix="/payment", tags=["Payment"])
 
+
 @app.get("/test-db/", summary="Test Database Connection", tags=["Test"])
-async def test_db_connection(
-    session: AsyncSession = Depends(get_async_session)
-):
+async def test_db_connection(session: AsyncSession = Depends(get_async_session)):
     """
     Attempts to retrieve the first payment_ID from the database.
     """
@@ -85,9 +80,7 @@ async def test_db_connection(
         payment = result.scalar_one_or_none()
 
         if payment:
-            logger.info(
-                f"Successfully retrieved payment_ID: {payment.id}"
-            )
+            logger.info(f"Successfully retrieved payment_ID: {payment.id}")
             return {"status": "success", "first_payment_ID": payment.id}
         else:
             logger.info("No payment_ID found in the database.")
@@ -105,10 +98,11 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
-       "app.main:app",
-       host="0.0.0.0",
-       port=8004, # Or load from config
-       reload=(settings.APP_ENV == "development"),
-       log_level="info"
-   )
+        "app.main:app",
+        host="0.0.0.0",
+        port=8004,
+        reload=(settings.APP_ENV == "development"),
+        log_level="info",
+    )
