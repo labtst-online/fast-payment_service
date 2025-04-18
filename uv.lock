@@ -74,7 +74,7 @@ wheels = [
 [[package]]
 name = "auth-lib"
 version = "0.1.0"
-source = { git = "https://github.com/fotapol/auth-lib.git?rev=main#9ff4ddf78f08af7ccd6efe9b9edbf8902e3ca3c7" }
+source = { git = "https://github.com/fotapol/auth-lib.git?rev=main#ed705ecbbcb8c21297b24d55a012f78956aa275a" }
 dependencies = [
     { name = "fastapi" },
     { name = "httpx" },

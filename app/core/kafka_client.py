@@ -12,7 +12,6 @@ class KafkaClient:
     def __init__(self):
         self._producer: Producer | None = None
 
-
     def acked(self, err, msg):
         """
         Callback function executed by Kafka Producer once a message is delivered or fails.
@@ -26,18 +25,17 @@ class KafkaClient:
                 f"[Partition {msg.partition()}] @ Offset {msg.offset()}"
             )
 
-
     def init_producer(self):
         """
         Initializes the Kafka Producer instance using settings.
         """
         conf = {
-            'bootstrap.servers': settings.KAFKA_BOOTSTRAP_SERVERS,
-            'client.id': settings.KAFKA_CLIENT_ID,
-            'acks': 'all',  # Wait for all in-sync replicas to acknowledge receipt
-            'retries': 3,  # Number of retries on failure
-            'retry.backoff.ms': 1000,  # Time to wait between retries
-            'enable.idempotence': True,  # Prevents duplicate messages from producer retries
+            "bootstrap.servers": settings.KAFKA_BOOTSTRAP_SERVERS,
+            "client.id": settings.KAFKA_CLIENT_ID,
+            "acks": "all",
+            "retries": 3,
+            "retry.backoff.ms": 1000,
+            "enable.idempotence": True,
         }
         try:
             self._producer = Producer(conf)
@@ -47,14 +45,13 @@ class KafkaClient:
             )
         except KafkaException as e:
             logger.exception(f"CRITICAL: Failed to initialize Kafka producer: {e}", exc_info=True)
-            self._producer = None # Ensure producer is None if init fails
+            self._producer = None
         except Exception as e:
             logger.exception(
-                f"An unexpected error occurred "
-                f"during Kafka producer initialization: {e}", exc_info=True
+                f"An unexpected error occurred during Kafka producer initialization: {e}",
+                exc_info=True,
             )
             self._producer = None
-
 
     def close_producer(self):
         """
@@ -77,7 +74,6 @@ class KafkaClient:
         except Exception as e:
             logger.exception(f"Error flushing Kafka producer: {e}", exc_info=True)
 
-
     def produce_message(self, topic: str, event: SQLModel):
         """
         Produces (sends) a Pydantic event model to the specified Kafka topic.
@@ -91,22 +87,19 @@ class KafkaClient:
             return False
 
         try:
-            message_bytes = event.model_dump_json().encode('utf-8')
+            message_bytes = event.model_dump_json().encode("utf-8")
 
             key_bytes = None
-            if hasattr(event, 'user_id') and event.user_id:
+            if hasattr(event, "user_id") and event.user_id:
                 try:
-                    key_bytes = str(event.user_id).encode('utf-8')
+                    key_bytes = str(event.user_id).encode("utf-8")
                 except AttributeError:
                     logger.warning(
                         "Event model has user_id but couldn't convert to string for Kafka key."
                     )
 
             self._producer.produce(
-                topic=topic,
-                value=message_bytes,
-                key=key_bytes,
-                callback=self.acked
+                topic=topic, value=message_bytes, key=key_bytes, callback=self.acked
             )
 
             self._producer.poll(0)
