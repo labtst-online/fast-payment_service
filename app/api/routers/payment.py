@@ -2,10 +2,10 @@ import logging
 
 import httpx
 import stripe
+from auth_lib.auth import CurrentUserUUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUserUUID
 from app.core.config import settings
 from app.core.database import get_async_session
 from app.models.payment import Payment, PaymentStatus
@@ -20,7 +20,7 @@ router = APIRouter()
     response_model=StripeCheckoutSession,
     summary="Create Stripe Checkout Session",
     description="Initiates a payment process by creating a Stripe Checkout Session.",
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,
 )
 async def create_checkout_session(
     payload: PaymentCreate,
@@ -40,9 +40,9 @@ async def create_checkout_session(
             tier_data = response.json()
 
             # Extract tier details from response
-            tier_price = tier_data.get('price')
-            tier_currency = tier_data.get('currency', 'usd').lower()
-            tier_name = tier_data.get('name')
+            tier_price = tier_data.get("price")
+            tier_currency = tier_data.get("currency", "usd").lower()
+            tier_name = tier_data.get("name")
 
             logger.info(f"Retrieved tier details: {tier_name} - {tier_price} {tier_currency}")
 
@@ -62,30 +62,32 @@ async def create_checkout_session(
         logger.error(f"Failed to convert price {tier_price} to cents: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to process tier price."
+            detail="Failed to process tier price.",
         )
 
     try:
         checkout_session = stripe.checkout.Session.create(
             client_reference_id=str(current_user),
             # Payment details
-            line_items=[{
-                'price_data': {
-                    'currency': tier_currency,
-                    'product_data': {
-                        'name': f"Subscription: {tier_name}", # Display name on Stripe page
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": tier_currency,
+                        "product_data": {
+                            "name": f"Subscription: {tier_name}",  # Display name on Stripe page
+                        },
+                        "unit_amount": unit_amount_in_cents,  # Price in cents
                     },
-                    'unit_amount': unit_amount_in_cents, # Price in cents
-                },
-                'quantity': 1,
-            }],
-            mode='payment',
-            success_url=settings.DOMAIN + '?success=true',
-            cancel_url=settings.DOMAIN + '?canceled=true',
+                    "quantity": 1,
+                }
+            ],
+            mode="payment",
+            success_url=settings.DOMAIN + "?success=true",
+            cancel_url=settings.DOMAIN + "?canceled=true",
             metadata={
-                'tier_id': str(payload.tier_id),
-                'user_id': str(current_user),
-            }
+                "tier_id": str(payload.tier_id),
+                "user_id": str(current_user),
+            },
         )
         logger.info(f"Stripe Checkout Session created successfully: {checkout_session.id}")
 
@@ -93,13 +95,13 @@ async def create_checkout_session(
         logger.error(f"Stripe API error creating checkout session: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create payment session with Stripe: {e}"
+            detail=f"Failed to create payment session with Stripe: {e}",
         )
     except Exception as e:
         logger.error(f"Unexpected error creating checkout session: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred while initiating payment."
+            detail="An unexpected error occurred while initiating payment.",
         )
 
     db_payment = Payment(
@@ -108,7 +110,7 @@ async def create_checkout_session(
         stripe_checkout_session_id=checkout_session.id,
         amount=unit_amount_in_cents,
         currency=tier_currency,
-        status=PaymentStatus.PENDING
+        status=PaymentStatus.PENDING,
     )
     session.add(db_payment)
 
@@ -117,15 +119,15 @@ async def create_checkout_session(
         await session.refresh(db_payment)
         logger.info(f"Pending payment record created in DB with ID: {db_payment.id}")
     except Exception as e:
-        logger.critical(f"Failed to save pending payment record"
-                        f" for Stripe session {checkout_session.id} after creation. Error: {e}")
+        logger.critical(
+            f"Failed to save pending payment record"
+            f" for Stripe session {checkout_session.id} after creation. Error: {e}"
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Payment session initiated but failed to save record. Please contact support."
+            detail="Payment session initiated but failed to save record. Please contact support.",
         )
-    return StripeCheckoutSession(
-        session_id=checkout_session.id,
-        checkout_url=checkout_session.url
-    )
+    return StripeCheckoutSession(session_id=checkout_session.id, checkout_url=checkout_session.url)
+
 
 # TODO: Add endpoint to check payment history
