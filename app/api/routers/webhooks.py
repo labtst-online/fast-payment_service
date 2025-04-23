@@ -19,49 +19,40 @@ router = APIRouter()
 async def verify_stripe_signature(request: Request) -> stripe.Event:
     """Verify Stripe webhook signature and return the event"""
     payload = await request.body()
-    sig_header = request.headers.get('stripe-signature')
+    sig_header = request.headers.get("stripe-signature")
     logger.debug(f"Received Stripe webhook. Signature header present: {bool(sig_header)}")
 
     if not sig_header:
         logger.error("Stripe signature header missing.")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing Stripe signature"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Missing Stripe signature"
         )
 
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
+        logger.info(
+            f"Stripe webhook signature verified successfully."
+            f" Event ID: {event.id}, Type: {event.type}"
         )
-        logger.info(f"Stripe webhook signature verified successfully."
-                     f" Event ID: {event.id}, Type: {event.type}")
         return event
     except ValueError as e:
         # Invalid payload
         logger.error(f"Invalid Stripe webhook payload: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid payload"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payload")
     except stripe.error.SignatureVerificationError as e:
         # Invalid signature
         logger.error(f"Invalid Stripe webhook signature: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid signature"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid signature")
     except Exception as e:
         logger.error(f"Unexpected error during webhook signature verification: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Webhook signature verification error"
+            detail="Webhook signature verification error",
         )
 
 
 async def process_successful_payment(
-    session: AsyncSession,
-    checkout_session_id: str,
-    payment_intent_id: str
+    session: AsyncSession, checkout_session_id: str, payment_intent_id: str
 ) -> Payment | None:
     """Update payment record for successful checkout"""
     logger.info(f"Processing successful payment for checkout session: {checkout_session_id}")
@@ -114,13 +105,12 @@ async def publish_payment_event(payment: Payment) -> bool:
             currency=payment.currency,
             paid_at=datetime.datetime.now(datetime.UTC),
             stripe_payment_intent_id=payment.stripe_payment_intent_id,
-            stripe_checkout_session_id=payment.stripe_checkout_session_id
+            stripe_checkout_session_id=payment.stripe_checkout_session_id,
         )
         logger.debug(f"Prepared event data for Kafka: {event.model_dump_json()}")
 
         success = kafka_client.produce_message(
-            topic=settings.KAFKA_PAYMENT_EVENTS_TOPIC,
-            event=event
+            topic=settings.KAFKA_PAYMENT_EVENTS_TOPIC, event=event
         )
 
         if success:
@@ -138,8 +128,7 @@ async def publish_payment_event(payment: Payment) -> bool:
 
     except Exception as e:
         logger.exception(
-            f"Error creating/publishing Kafka event for payment {payment.id}: {e}",
-            exc_info=True
+            f"Error creating/publishing Kafka event for payment {payment.id}: {e}", exc_info=True
         )
         return False
 
@@ -149,11 +138,10 @@ async def publish_payment_event(payment: Payment) -> bool:
     summary="Stripe Webhook Handler",
     description="Receives and processes webhook events from Stripe.",
     status_code=status.HTTP_200_OK,
-    include_in_schema=False # Hide this endpoint from OpenAPI docs
+    include_in_schema=False,  # Hide this endpoint from OpenAPI docs
 )
 async def stripe_webhook(
-    request: Request,
-    session: AsyncSession = Depends(get_async_session)
+    request: Request, session: AsyncSession = Depends(get_async_session)
 ) -> Response:
     """
     Handles incoming webhook events from Stripe.
@@ -167,32 +155,32 @@ async def stripe_webhook(
         event = await verify_stripe_signature(request)
     except HTTPException as e:
         logger.error(f"Webhook signature verification failed: {e.detail}")
-        raise e # Re-raise the HTTPException to return proper status code
+        raise e
     except Exception as e:
         logger.exception(f"Unexpected error during signature verification step: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error during signature verification."
+            detail="Internal server error during signature verification.",
         )
 
-    event_type = event.get('type')
+    event_type = event.get("type")
     logger.debug(f"Processing verified event type: {event_type}")
 
-    if event_type != 'checkout.session.completed':
+    if event_type != "checkout.session.completed":
         logger.info(f"Received unhandled event type: {event_type}. Acknowledging.")
         return Response(status_code=status.HTTP_200_OK)
 
-    session_data = event['data']['object']
-    checkout_session_id = session_data.get('id')
-    payment_status = session_data.get('payment_status')
-    payment_intent_id = session_data.get('payment_intent')
+    session_data = event["data"]["object"]
+    checkout_session_id = session_data.get("id")
+    payment_status = session_data.get("payment_status")
+    payment_intent_id = session_data.get("payment_intent")
 
     logger.info(
         f"Handling checkout.session.completed for session {checkout_session_id}."
         f" Payment status: {payment_status}"
     )
 
-    if payment_status != 'paid':
+    if payment_status != "paid":
         logger.warning(
             f"Checkout session {checkout_session_id} completed but payment"
             f" status is '{payment_status}'. No action taken."
@@ -203,10 +191,10 @@ async def stripe_webhook(
         logger.error(
             f"Checkout session {checkout_session_id} is paid but missing 'payment_intent'."
             " Cannot proceed."
-            )
+        )
         return Response(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content="Missing payment intent in webhook data."
+            content="Missing payment intent in webhook data.",
         )
 
     payment = None
@@ -218,7 +206,7 @@ async def stripe_webhook(
         payment = await process_successful_payment(
             session=session,
             checkout_session_id=checkout_session_id,
-            payment_intent_id=payment_intent_id
+            payment_intent_id=payment_intent_id,
         )
 
         if payment:
@@ -244,7 +232,7 @@ async def stripe_webhook(
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error processing payment completion."
+            detail="Internal server error processing payment completion.",
         )
 
     logger.info(f"Successfully processed webhook for checkout session {checkout_session_id}.")

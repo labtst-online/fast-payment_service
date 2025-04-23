@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "alembic>=1.15.2",
     "asyncpg>=0.30.0",
-    "confluent-kafka>=2.9.0",
+    "confluent-kafka>=2.10.0",
     "fastapi>=0.115.12",
     "httpx>=0.28.1",
     "psycopg2-binary>=2.9.10",
@@ -15,6 +15,7 @@ dependencies = [
     "sqlmodel>=0.0.24",
     "stripe>=12.0.0",
     "uvicorn>=0.34.0",
+    "auth-lib @ git+https://github.com/fotapol/auth-lib.git@main",
 ]
 
 [project.optional-dependencies]

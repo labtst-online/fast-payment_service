@@ -10,17 +10,17 @@ logger = logging.getLogger(__name__)
 
 async_engine = create_async_engine(
     str(settings.SQLALCHEMY_DATABASE_URI),
-    pool_pre_ping=True, # Helps prevent errors from stale connections
-    echo=settings.APP_ENV == "development", # Log SQL only in dev
+    pool_pre_ping=True,
+    echo=settings.APP_ENV == "development",
     future=True,
 )
 
 
 AsyncSessionFactory = async_sessionmaker(
     bind=async_engine,
-    autoflush=False,    # Recommended for async
-    expire_on_commit=False, # Recommended for async / FastAPI background tasks
-    class_=AsyncSession # Specify AsyncSession class
+    autoflush=False,
+    expire_on_commit=False,
+    class_=AsyncSession,
 )
 
 
@@ -36,5 +36,4 @@ async def get_async_session() -> AsyncGenerator[AsyncSession]:
             await session.rollback()
             raise
         finally:
-            # The 'async with' context manager handles closing automatically
             logger.debug("Payment session closed")

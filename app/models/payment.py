@@ -33,13 +33,13 @@ class Payment(PaymentBase, table=True):
     currency: str = Field(default="usd", nullable=False, max_length=3)
     status: PaymentStatus = Field(
         sa_column=Column(
-            Enum(PaymentStatus), nullable=False, index=True,
+            Enum(PaymentStatus),
+            nullable=False,
+            index=True,
         )
     )
     created_at: datetime.datetime = Field(
-        sa_column=Column(
-            DateTime(timezone=True), nullable=False, server_default=func.now()
-        )
+        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     )
     updated_at: datetime.datetime = Field(
         sa_column=Column(

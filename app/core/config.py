@@ -6,10 +6,11 @@ from pydantic_core import MultiHostUrl
 from pydantic_core.core_schema import ValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=env_path, extra='ignore')
+    model_config = SettingsConfigDict(env_file=env_path, extra="ignore")
 
     APP_ENV: str = "development"
     DOMAIN: str = "http://localhost/"
@@ -27,12 +28,11 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str
 
     # Kafka Config
-    KAFKA_BOOTSTRAP_SERVERS: str ="kafka:9092"
-    KAFKA_PAYMENT_EVENTS_TOPIC: str ="payment_events"
+    KAFKA_BOOTSTRAP_SERVERS: str = "kafka:9092"
+    KAFKA_PAYMENT_EVENTS_TOPIC: str = "payment_events"
     KAFKA_CLIENT_ID: str = "payment_service_producer"
 
     # Service URLs
-    AUTH_SERVICE_URL: HttpUrl = "http://auth_service:8000"
     SUBSCRIPTION_SERVICE_URL: HttpUrl = "http://subscription_service:8003"
     FRONTEND_URL: HttpUrl = "http://localhost:3000"
 
@@ -42,9 +42,7 @@ class Settings(BaseSettings):
     @classmethod
     def assemble_async_db_connection(cls, v: str | None, info: ValidationInfo) -> Any:
         if isinstance(v, str):
-            # If the URI is already provided as a string, use it directly
             return v
-        # Otherwise, build it from components
         values = info.data
         return MultiHostUrl.build(
             scheme="postgresql+asyncpg",
