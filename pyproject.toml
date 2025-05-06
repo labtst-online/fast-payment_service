@@ -16,6 +16,7 @@ dependencies = [
     "stripe>=12.0.0",
     "uvicorn>=0.34.0",
     "auth-lib @ git+https://github.com/fotapol/auth-lib.git@main",
+    "python-semantic-release>=9.21.1",
 ]
 
 [project.optional-dependencies]
