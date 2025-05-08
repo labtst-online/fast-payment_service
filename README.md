@@ -7,7 +7,7 @@ The Payment Service is responsible for managing user payments. It is part of the
 - **FastAPI** – Web framework
 - **PostgreSQL** – Relational database
 - **Docker** – Containerization
-- **GitHub Actions** – Continuous Integration (CI)
+- **GitHub Actions** – Continuous Integration and Continuous Delivery
 - **Stripe** – Payment processing integration
 
 ## API Endpoints
@@ -38,7 +38,6 @@ cp .env.sample .env
 ```bash
 docker-compose up --build
 ```
-
 
 ## GitHub Actions (CI, CD)
 
