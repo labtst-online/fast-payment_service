@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from importlib.metadata import PackageNotFoundError, version
 
 import stripe
 from fastapi import Depends, FastAPI, HTTPException
@@ -16,6 +17,11 @@ from .core.kafka_client import kafka_client
 
 logging.basicConfig(level=logging.INFO if settings.APP_ENV == "production" else logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+try:
+    __version__ = version("fastboosty-profile_service")
+except PackageNotFoundError:
+    __version__ = "0.0.0"
 
 
 @asynccontextmanager
@@ -59,7 +65,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Payment Service",
     description="Handles user transactions.",
-    version="0.1.0",
+    version=__version__,
     lifespan=lifespan,
 )
 
