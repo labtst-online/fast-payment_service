@@ -40,10 +40,11 @@ docker-compose up --build
 ```
 
 
-## GitHub Actions(CI)
+## GitHub Actions (CI, CD)
 
-GitHub Actions workflow runs ruff formater check on every push and pull request to the main and develop branches.
+* Continuous Integration workflow runs tests and ruff formater check on every push and pull request to the main and develop branches.
+* Continuous Delivery workflow build and push image to GHCR.
 
 ## License
 
-The Fastboosty Payment Service is licensed under the terms of the MIT license.
+This repository is licensed under the terms of the MIT license.
