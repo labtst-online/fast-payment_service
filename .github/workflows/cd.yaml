@@ -5,13 +5,15 @@ on:
     branches: 
       - main
       - develop
-      - feature/**
       - hotfix/**
 
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,13 +25,10 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Install UV
-        uses: astral-sh/setup-uv@v5
-        with:
-          version: 'latest'
-      
       - name: Install python-semantic-release
-        run: uv add python-semantic-release
+        run: |
+          python -m pip install --upgrade pip
+          pip install python-semantic-release
 
       - name: Semantic Release (bump & tag)
         env:
@@ -39,16 +38,16 @@ jobs:
       - name: Get version tag
         id: get_version
         run: echo "VERSION=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
-      
+    
       - name: Login to GHCR
         env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PAT }}
         run: echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Build and push image
         env:
           VERSION: ${{ steps.get_version.outputs.VERSION }}
-          SERVICE: fastboosty-${{ github.event.repository.name }}
+          SERVICE: ${{ github.event.repository.name }}
         run: |
           TAG=${VERSION#v}
           docker build -t ghcr.io/fotapol/${SERVICE}:${TAG} \

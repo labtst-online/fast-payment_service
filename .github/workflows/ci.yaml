@@ -33,11 +33,8 @@ jobs:
         with:
           version: 'latest'
 
-      - name: Configure Git for Private Repo Access
-        run: git config --global url."https://oauth2:${{ secrets.GH_PAT_FOR_AUTH_LIB }}@github.com/".insteadOf "https://github.com/"
-
-      - name: Sync all dependencies (including extras)
-        run: uv sync --all-extras --upgrade-package auth-lib
+      - name: Sync all dependencies
+        run: uv sync --all-extras
 
       - name: Run ruff format check
         run: uv run ruff format --check .
