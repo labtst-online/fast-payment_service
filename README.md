@@ -6,6 +6,7 @@ The Payment Service is responsible for managing user payments. It is part of the
 
 - **FastAPI** – Web framework
 - **PostgreSQL** – Relational database
+- **Kafka** – Message Queue
 - **Docker** – Containerization
 - **GitHub Actions** – Continuous Integration and Continuous Delivery
 - **Stripe** – Payment processing integration
