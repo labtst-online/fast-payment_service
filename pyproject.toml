@@ -42,3 +42,13 @@ quote-style = "double"
 
 [tool.ruff.lint.per-file-ignores]
 "app/alembic/**/*" = ["E501", "E402", "F401"]
+
+[tool.semantic_release]
+version_source = "tag"
+upload_to_pypi = false
+
+[tool.semantic_release.branches]
+main = {}
+develop = { match = "develop" }
+"hotfix/.*" = { match = "^hotfix/.*$" }
+"feature/.*" = { match = "^feature/.*$" }
