@@ -7,7 +7,7 @@ The Payment Service is responsible for managing user payments. It is part of the
 - **FastAPI** – Web framework
 - **PostgreSQL** – Relational database
 - **Docker** – Containerization
-- **GitHub Actions** – Continuous Integration (CI)
+- **GitHub Actions** – Continuous Integration and Continuous Delivery
 - **Stripe** – Payment processing integration
 
 ## API Endpoints
@@ -39,11 +39,11 @@ cp .env.sample .env
 docker-compose up --build
 ```
 
+## GitHub Actions (CI, CD)
 
-## GitHub Actions(CI)
-
-GitHub Actions workflow runs ruff formater check on every push and pull request to the main and develop branches.
+* Continuous Integration workflow runs tests and ruff formater check on every push and pull request to the main and develop branches.
+* Continuous Delivery workflow build and push image to GHCR.
 
 ## License
 
-The Fastboosty Payment Service is licensed under the terms of the MIT license.
+This repository is licensed under the terms of the MIT license.
