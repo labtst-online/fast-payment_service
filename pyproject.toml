@@ -16,11 +16,11 @@ dependencies = [
     "stripe>=12.0.0",
     "uvicorn>=0.34.0",
     "auth-lib @ git+https://github.com/fotapol/auth-lib.git@main",
-    "python-semantic-release>=9.21.1",
 ]
 
 [project.optional-dependencies]
 dev = [
+    "python-semantic-release>=9.21.1",
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.5", # For testing async code
     "ruff>=0.11.2",           # Linter/Formatter
@@ -44,11 +44,16 @@ quote-style = "double"
 "app/alembic/**/*" = ["E501", "E402", "F401"]
 
 [tool.semantic_release]
-version_source = "tag"
+version_toml = [
+    "pyproject.toml:project.version"
+]
+branch = "main"
 upload_to_pypi = false
-
-[tool.semantic_release.branches]
-main = {}
-develop = { match = "develop" }
-"hotfix/.*" = { match = "^hotfix/.*$" }
-"feature/.*" = { match = "^feature/.*$" }
+upload_to_release = true
+version_source = "tag"
+commit_version_number = true
+changelog_file = "CHANGELOG.md"
+commit_message = "chore(release): bump version to v{version}"
+commit_parser_options = { conventional_commits_version = "0.1.0" }
+major_on_breaking = true
+hvcs = "github"
