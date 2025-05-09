@@ -2,5 +2,14 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.idea/
-.vscode/
+.Python
+env/
+venv/
+.venv/
+.git/
+.github/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/

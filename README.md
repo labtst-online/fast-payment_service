@@ -18,13 +18,13 @@ The Payment Service is responsible for managing user payments. It is part of the
 
 ## Getting Started
 
-> This service depends on the `auth_service`. It's recommended to run the full system using [`fastboosty-deployment`](https://github.com/fastboosty/fastboosty-deployment).
+> This service depends on the `auth_service`. It's recommended to run the full system using [`fastboosty-deployment`](https://github.com/fotapol/fastboosty-deployment).
 
 ### 1. Clone repository
 
 ```bash
-git clone https://github.com/fastboosty/fastboosty-payment.git
-cd fastboosty-payment
+git clone https://github.com/fotapol/fastboosty-payment_service.git
+cd fastboosty-payment_service
 ```
 
 ### 2. Configure

@@ -8,21 +8,18 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Install system dependencies including git
-RUN apt-get update && apt-get install -y git
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install uv
-RUN pip install uv
+RUN pip install --no-cache-dir uv
 
 # Copy only dependency definition files first for caching
 COPY pyproject.toml ./
 
 # Install dependencies using uv
-# Use --system to install globally in the container image, common for Docker
-RUN --mount=type=secret,id=github_token \
-    sh -c ' \
-        git config --global url."https://oauth2:$(cat /run/secrets/github_token)@github.com/".insteadOf "https://github.com/" && \
-        uv pip install --system ".[dev]" \
-    '
+RUN uv pip install --system --no-cache .
 
 # Copy the entrypoint script and make it executable
 COPY entrypoint.sh /entrypoint.sh
