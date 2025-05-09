@@ -23,8 +23,8 @@ The Payment Service is responsible for managing user payments. It is part of the
 ### 1. Clone repository
 
 ```bash
-git clone https://github.com/fastboosty/fastboosty-payment.git
-cd fastboosty-payment
+git clone https://github.com/fotapol/fastboosty-payment_service.git
+cd fastboosty-payment_service
 ```
 
 ### 2. Configure
