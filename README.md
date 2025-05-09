@@ -18,7 +18,7 @@ The Payment Service is responsible for managing user payments. It is part of the
 
 ## Getting Started
 
-> This service depends on the `auth_service`. It's recommended to run the full system using [`fastboosty-deployment`](https://github.com/fastboosty/fastboosty-deployment).
+> This service depends on the `auth_service`. It's recommended to run the full system using [`fastboosty-deployment`](https://github.com/fotapol/fastboosty-deployment).
 
 ### 1. Clone repository
 
