@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO if settings.APP_ENV == "production" else 
 logger = logging.getLogger(__name__)
 
 try:
-    __version__ = version("fastboosty-profile_service")
+    __version__ = version("payment-service")
 except PackageNotFoundError:
     __version__ = "0.0.0"
 

@@ -1,6 +1,6 @@
-# FastBoosty – Payment Service
+# Payment Service
 
-The Payment Service is responsible for managing user payments. It is part of the **FastBoosty** app.
+The Payment Service is responsible for managing user payments. It is part of the FastAPI app.
 
 ## Tech Stack
 
@@ -18,13 +18,13 @@ The Payment Service is responsible for managing user payments. It is part of the
 
 ## Getting Started
 
-> This service depends on the `auth_service`. It's recommended to run the full system using [`fastboosty-deployment`](https://github.com/fotapol/fastboosty-deployment).
+> This service depends on the `auth_service`. It's recommended to run the full system using [`fast-deployment`](https://github.com/labtst-online/fast-deployment).
 
 ### 1. Clone repository
 
 ```bash
-git clone https://github.com/fotapol/fastboosty-payment_service.git
-cd fastboosty-payment_service
+git clone https://github.com/labtst-online/fast-payment_service.git
+cd fast-payment_service
 ```
 
 ### 2. Configure
@@ -32,7 +32,7 @@ cd fastboosty-payment_service
 ```bash
 cp .env.sample .env
 ```
-> Change varibles before `docker-compose up`
+> Change variables before `docker-compose up`
 
 ### 3. Run with Docker
 
